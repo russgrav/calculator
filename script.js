@@ -5,6 +5,9 @@ const operatorButtons = document.querySelectorAll('.op-btn');
 const clearButton = document.querySelector('.clear');
 const deleteButton = document.querySelector('.delete');
 const equalButton = document.getElementById('equals');
+const decimalButton = document.getElementById('decimal');
+
+decimalButton.disabled = false;
 
 let displayCurrentValue;
 let operator = "";
@@ -14,42 +17,34 @@ let operatorClicked = false;
 let resultNumber;
 let numButtonClicked = false;
 let equalClicked = false;
+let opResult;
 
-// need to disable multiple decimal points from being allowed
+// next task -- add keyboard support
 
 for (let i = 0; i < numButtons.length; i++) {
   numButtons[i].addEventListener("click", () => {
-    if (displayCurrent.textContent === "0" || operatorClicked === true) {
+    if ((numButtons[i].value === ".") && (
+      displayCurrent.textContent.includes("."))) {
+        decimalButton.disabled = true;
+    } else if (displayCurrent.textContent === "0" || operatorClicked === true || 
+    equalClicked === true) {
       displayCurrent.textContent = numButtons[i].value;
       displayCurrentValue = displayCurrent.textContent;
+      if (equalClicked === true) {
+        displayLastValue = "";
+        displayLast.textContent = displayLastValue;
+      }
     } else if (displayCurrent.textContent.length < 8) {
       displayCurrent.textContent += numButtons[i].value; 
       displayCurrentValue = displayCurrent.textContent;
-    } else {
-      return;
     }
     numButtonClicked = true;
     operatorClicked = false;
     equalClicked = false;
-    console.log(`last value: ${displayLastValue}`)
-    console.log(`current value: ${displayCurrentValue}`)
-    console.log(`numButtonClicked: ${numButtonClicked}`)
-    console.log(`operatorClicked: ${operatorClicked}`)
-    console.log(`equalClicked: ${equalClicked}`)
+    decimalButton.disabled = false;
+    console.log(displayCurrent.textContent);
   });
 }
-
-// we need to account for scenarios where we add on numbers to the current display value and then 
-// press an operator -- we don't want to trigger the equal event in those cases, but rather add
-// on an operator to the displayLast
-
-// maybe need some change in behavior when we add a number to the displayCurrent?
-
-// we only want equalEvent to activate upon push of the operator button if 
-
-// we want pushing of numbers after pressing the equal button to still prohibit the operator
-// buttons from calling equalEvent
-
 
 for (let i = 0; i < operatorButtons.length; i++) {
   operatorButtons[i].addEventListener("click", () => {
@@ -62,35 +57,15 @@ for (let i = 0; i < operatorButtons.length; i++) {
     operatorClicked = true;
     numButtonClicked = false;
     equalClicked = false;
-    console.log(`last value: ${displayLastValue}`)
-    console.log(`current value: ${displayCurrentValue}`)
-    console.log(`numButtonClicked: ${numButtonClicked}`)
-    console.log(`operatorClicked: ${operatorClicked}`)
-    console.log(`equalClicked: ${equalClicked}`)
   })
 
 }
 
-clearButton.addEventListener("click", () => {
-  displayCurrent.textContent = "0";
-  displayLast.textContent = "";
-  displayCurrentValue = displayCurrent.textContent;
-  displayLastValue = "";
-  console.log(`last value: ${displayLastValue}`)
-  console.log(`current value: ${displayCurrentValue}`)
-  console.log(`numButtonClicked: ${numButtonClicked}`)
-  console.log(`operatorClicked: ${operatorClicked}`)
-  console.log(`equalClicked: ${equalClicked}`)
-})
+clearButton.addEventListener("click", clearEvent)
 
 deleteButton.addEventListener("click", () => {
   displayCurrent.textContent = displayCurrent.textContent.slice(0, -1);
   displayCurrentValue = displayCurrent.textContent;
-  console.log(`last value: ${displayLastValue}`)
-  console.log(`current value: ${displayCurrentValue}`)
-  console.log(`numButtonClicked: ${numButtonClicked}`)
-  console.log(`operatorClicked: ${operatorClicked}`)
-  console.log(`equalClicked: ${equalClicked}`)
 })
 
 equalButton.addEventListener("click", () => {
@@ -100,21 +75,23 @@ equalButton.addEventListener("click", () => {
     operatorClicked = false;
     numButtonClicked = false;
   } else return;
-  console.log(`last value: ${displayLastValue}`)
-  console.log(`current value: ${displayCurrentValue}`)
-  console.log(`numButtonClicked: ${numButtonClicked}`)
-  console.log(`operatorClicked: ${operatorClicked}`)
-  console.log(`equalClicked: ${equalClicked}`)
 })
 
 function equalEvent() {
   if (displayLast.textContent) {
-    displayLast.textContent += " " + displayCurrentValue;
+    displayLast.textContent += " " + displayCurrentValue + " =";
     displayCurrentValue = Number(displayCurrentValue);
     displayLastValue = Number(displayLastValue);
-    operate(operator, displayLastValue, displayCurrentValue);
+    opResult = operate(operator, displayLastValue, displayCurrentValue);
     operatorClicked = false;
   }
+}
+
+function clearEvent() {
+  displayCurrent.textContent = "0";
+  displayLast.textContent = "";
+  displayCurrentValue = displayCurrent.textContent;
+  displayLastValue = "";
 }
 
 function add(a, b) {
@@ -130,7 +107,13 @@ function multiply(a, b) {
 }
 
 function divide(a, b) {
-  return a / b;
+  if (b === 0) {
+    alert("You can't divide by zero, silly!")
+    clearEvent();
+    return false;
+  } else {
+    return a / b;
+  }
 }
 
 function operate(operator, a, b) {
@@ -148,14 +131,15 @@ function operate(operator, a, b) {
       result = divide(a, b);
       break;
   }
-  result = Math.round(result * 10000) / 10000;
-  resultString = result.toString();
-  if (resultString.length >= 8) {
-    shortenedResultString = resultString.slice(0, 9);
-    result = Number(shortenedResultString);
-    // need a better way to deal with long numbers
-  }
-  displayCurrent.textContent = result;
-  displayCurrentValue = result;
+  if (result) {
+    result = Math.round(result * 10000) / 10000;
+    resultString = result.toString();
+    if (resultString.length >= 8) {
+      result = result.toExponential(5);
+    }
+    displayCurrent.textContent = result;
+    displayCurrentValue = result;
+    return result;
+  } else return;
 }
 
